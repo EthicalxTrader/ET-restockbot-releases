@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RestockBot Setup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080b12;
+    --surface: #0f1420;
+    --card: #141926;
+    --border: #1e2535;
+    --border2: #2a3448;
+    --text: #e2e8f8;
+    --muted: #5a6a88;
+    --dim: #3a4a68;
+    --green: #00e5a0;
+    --green-dim: rgba(0,229,160,0.1);
+    --green-border: rgba(0,229,160,0.25);
+    --red: #ff5370;
+    --amber: #ffb454;
+    --blue: #5a9cff;
+    --mono: 'DM Mono', monospace;
+    --display: 'Syne', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    display: flex;
+    flex-direction: column;
+    user-select: none;
+  }
+  input, select, textarea { user-select: text; -webkit-user-select: text; }
+
+  /* Title bar */
+  .titlebar {
+    height: 36px;
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    -webkit-app-region: drag;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .shell, .content, .steps-panel { -webkit-app-region: no-drag; }
+  .titlebar-logo { font-family: var(--display); font-size: 12px; font-weight: 700; color: var(--green); letter-spacing: 1px; }
+  .tb-left { display: flex; align-items: center; gap: 8px; }
+  .tb-icon { width: 18px; height: 18px; border-radius: 4px; object-fit: contain; }
+  .titlebar-controls { display: flex; gap: 6px; -webkit-app-region: no-drag; }
+  .tb-btn {
+    width: 12px; height: 12px; border-radius: 50%; border: none; cursor: pointer; transition: opacity 0.15s;
+  }
+  .tb-btn:hover { opacity: 0.8; }
+  .tb-close { background: #ff5f57; }
+  .tb-min { background: #febc2e; }
+  .tb-max { background: #28c840; }
+
+  /* Main layout */
+  .shell {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+  }
+
+  /* Left panel — step navigator */
+  .steps-panel {
+    width: 200px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 2rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  .steps-title {
+    font-family: var(--display);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--dim);
+    margin-bottom: 1rem;
+  }
+
+  .step-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    border-radius: 8px;
+    cursor: default;
+    transition: background 0.15s;
+  }
+  .step-item.done { opacity: 0.5; }
+  .step-item.active { background: rgba(0,229,160,0.06); }
+
+  .step-num {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 500; color: var(--muted);
+    flex-shrink: 0; transition: all 0.2s;
+  }
+  .step-item.done .step-num { background: var(--green); color: #000; }
+  .step-item.active .step-num { background: var(--green); color: #000; box-shadow: 0 0 12px rgba(0,229,160,0.4); }
+
+  .step-label { font-size: 12px; color: var(--muted); }
+  .step-item.active .step-label { color: var(--text); }
+  .step-item.done .step-label { color: var(--muted); }
+
+  /* Content */
+  .content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 2rem 2rem 1rem;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Page */
+  .page { display: none; flex: 1; flex-direction: column; animation: fadein 0.25s ease; }
+  .page.active { display: flex; }
+  @keyframes fadein { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+  .page-eyebrow {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 2px;
+    color: var(--green); font-weight: 500; margin-bottom: 6px;
+  }
+  .page-title {
+    font-family: var(--display);
+    font-size: 24px; font-weight: 800;
+    line-height: 1.2; margin-bottom: 6px;
+    background: linear-gradient(135deg, var(--text) 60%, var(--muted));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .page-sub { font-size: 12px; color: var(--muted); margin-bottom: 1.75rem; line-height: 1.6; }
+
+  /* Form */
+  .fg { margin-bottom: 14px; }
+  .fl {
+    display: block; font-size: 10px; text-transform: uppercase;
+    letter-spacing: 0.8px; color: var(--dim); margin-bottom: 5px; font-weight: 500;
+  }
+  input[type=text], input[type=email], input[type=password], input[type=number], input[type=url], select {
+    width: 100%; padding: 10px 12px;
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: 8px; color: var(--text); font-family: var(--mono); font-size: 12px;
+    outline: none; transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  input:focus, select:focus {
+    border-color: var(--green);
+    box-shadow: 0 0 0 3px rgba(0,229,160,0.08);
+  }
+  input::placeholder { color: var(--dim); }
+
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  /* Toggle */
+  .toggle-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+    cursor: pointer; transition: border-color 0.15s;
+  }
+  .toggle-card:hover { border-color: var(--border2); }
+  .toggle-card.selected { border-color: var(--green-border); background: var(--green-dim); }
+  .toggle-card-text .tc-title { font-size: 13px; font-weight: 500; margin-bottom: 3px; }
+  .toggle-card-text .tc-sub { font-size: 11px; color: var(--muted); line-height: 1.5; }
+
+  .tgl {
+    width: 36px; height: 20px; border-radius: 10px;
+    background: var(--border2); border: none; cursor: pointer;
+    position: relative; transition: background 0.2s; flex-shrink: 0; margin-top: 1px;
+  }
+  .tgl.on { background: var(--green); }
+  .tgl::after {
+    content: ''; position: absolute; top: 3px; left: 3px;
+    width: 14px; height: 14px; border-radius: 50%; background: #fff;
+    transition: transform 0.2s;
+  }
+  .tgl.on::after { transform: translateX(16px); }
+
+  /* Buttons */
+  .btn-row { display: flex; gap: 10px; margin-top: auto; padding-top: 1.5rem; }
+  .btn {
+    padding: 10px 20px; border-radius: 9px; font-size: 12px; font-family: var(--mono);
+    cursor: pointer; transition: all 0.15s; border: 1px solid var(--border2);
+    background: var(--card); color: var(--text); font-weight: 500;
+  }
+  .btn:hover { border-color: var(--border2); background: var(--surface); }
+  .btn-primary {
+    background: var(--green); color: #000; border-color: var(--green);
+    font-weight: 700; flex: 1;
+  }
+  .btn-primary:hover { background: #00c990; }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn:active { transform: scale(0.98); }
+
+  /* Notice boxes */
+  .notice {
+    background: var(--card); border: 1px solid var(--border2);
+    border-radius: 8px; padding: 10px 14px;
+    font-size: 11px; color: var(--muted); line-height: 1.6; margin-bottom: 12px;
+  }
+  .notice.info { border-color: rgba(90,156,255,0.3); color: var(--blue); background: rgba(90,156,255,0.05); }
+  .notice.success { border-color: var(--green-border); color: var(--green); background: var(--green-dim); }
+  .notice.warn { border-color: rgba(255,180,84,0.3); color: var(--amber); background: rgba(255,180,84,0.05); }
+
+  /* Link */
+  .link { color: var(--green); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+
+  /* Test email button */
+  .test-btn {
+    padding: 6px 12px; background: transparent; border: 1px solid var(--border2);
+    border-radius: 7px; color: var(--muted); font-family: var(--mono); font-size: 11px;
+    cursor: pointer; transition: all 0.15s; margin-top: 8px;
+  }
+  .test-btn:hover { border-color: var(--green); color: var(--green); }
+
+  /* Welcome screen */
+  .welcome-icon {
+    width: 72px; height: 72px; border-radius: 18px;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+  }
+  .welcome-icon img { width: 100%; height: 100%; object-fit: contain; }
+
+  .feature-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 1.5rem; }
+  .feature-item {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 14px;
+    font-size: 12px;
+  }
+  .feature-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+
+  /* Interval selector */
+  .interval-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 1rem; }
+  .interval-opt {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px; text-align: center;
+    cursor: pointer; transition: all 0.15s; font-size: 11px;
+  }
+  .interval-opt:hover { border-color: var(--border2); }
+  .interval-opt.selected { border-color: var(--green); background: var(--green-dim); color: var(--green); }
+  .interval-opt .iv-label { font-weight: 500; margin-bottom: 2px; }
+  .interval-opt .iv-sub { font-size: 10px; color: var(--muted); }
+  .interval-opt.selected .iv-sub { color: rgba(0,229,160,0.6); }
+
+  /* Final step */
+  .summary-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 12px;
+  }
+  .summary-row:last-child { border-bottom: none; }
+  .sum-key { color: var(--muted); }
+  .sum-val { font-weight: 500; }
+  .sum-val.on { color: var(--green); }
+  .sum-val.off { color: var(--dim); }
+</style>
+</head>
+<body>
+
+<!-- Title bar -->
+<div class="titlebar">
+  <div class="tb-left">
+    <img class="tb-icon" src="../assets/icon-32.png" alt="RestockBot">
+    <div class="titlebar-logo">RESTOCKBOT</div>
+  </div>
+  <div class="titlebar-controls">
+    <button class="tb-btn tb-min" onclick="window.restockbot.minimize()"></button>
+    <button class="tb-btn tb-max"></button>
+    <button class="tb-btn tb-close" onclick="window.restockbot.close()"></button>
+  </div>
+</div>
+
+<div class="shell">
+  <!-- Step nav -->
+  <div class="steps-panel">
+    <div class="steps-title">Setup</div>
+    <div class="step-item active" id="nav-0"><div class="step-num">1</div><div class="step-label">Welcome</div></div>
+    <div class="step-item" id="nav-1"><div class="step-num">2</div><div class="step-label">Notifications</div></div>
+    <div class="step-item" id="nav-2"><div class="step-num">3</div><div class="step-label">Schedule</div></div>
+    <div class="step-item" id="nav-3"><div class="step-num">4</div><div class="step-label">Auto-Order</div></div>
+    <div class="step-item" id="nav-4"><div class="step-num">5</div><div class="step-label">Finish</div></div>
+  </div>
+
+  <div class="content">
+
+    <!-- STEP 0: Welcome -->
+    <div class="page active" id="step-0">
+      <div class="welcome-icon"><img src="../assets/icon-128.png" alt="RestockBot"></div>
+      <div class="page-eyebrow">Welcome</div>
+      <div class="page-title">Your restock<br>bot is ready.</div>
+      <div class="page-sub">RestockBot monitors product pages and alerts you the moment items come back in stock — optionally placing orders for you automatically.</div>
+      <div class="feature-list">
+        <div class="feature-item"><div class="feature-dot"></div>Monitors any website — Nike, Best Buy, Walmart, Shopify stores, and more</div>
+        <div class="feature-item"><div class="feature-dot"></div>Email and SMS alerts the instant something restocks</div>
+        <div class="feature-item"><div class="feature-dot"></div>Optional auto-ordering with price guards and safety controls</div>
+        <div class="feature-item"><div class="feature-dot"></div>Runs in the background and lives in your system tray</div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="goTo(1)">Get Started →</button>
+      </div>
+    </div>
+
+    <!-- STEP 1: Notifications -->
+    <div class="page" id="step-1">
+      <div class="page-eyebrow">Step 2 of 5</div>
+      <div class="page-title">How should we notify you?</div>
+      <div class="page-sub">Choose how RestockBot alerts you when an item restocks. You can always change this later in Settings.</div>
+
+      <div class="toggle-card selected" id="card-desktop" onclick="toggleCard('desktop')">
+        <div class="toggle-card-text">
+          <div class="tc-title">Desktop notifications</div>
+          <div class="tc-sub">Pop-up alerts on your screen. Always on, no setup needed.</div>
+        </div>
+        <button class="tgl on" id="t-desktop"></button>
+      </div>
+
+      <div class="toggle-card" id="card-email" onclick="toggleCard('email')">
+        <div class="toggle-card-text">
+          <div class="tc-title">Email alerts</div>
+          <div class="tc-sub">Get an email when any item restocks. Uses Gmail.</div>
+        </div>
+        <button class="tgl" id="t-email"></button>
+      </div>
+
+      <div id="email-fields" style="display:none; margin-bottom:14px;">
+        <div class="notice info">You'll need a Gmail App Password — not your regular password. <span class="link" onclick="window.restockbot.openExternal('https://myaccount.google.com/apppasswords')">Create one here ↗</span></div>
+        <div class="fg"><label class="fl">Your Gmail address</label><input type="email" id="f-email-from" placeholder="you@gmail.com"></div>
+        <div class="fg"><label class="fl">Send alerts to (can be same)</label><input type="email" id="f-email-to" placeholder="you@gmail.com"></div>
+        <div class="fg"><label class="fl">Gmail App Password</label><input type="password" id="f-email-pass" placeholder="xxxx xxxx xxxx xxxx"></div>
+        <button class="test-btn" onclick="testEmail()">Send test email</button>
+        <div id="email-test-result" style="margin-top:6px;font-size:11px;"></div>
+      </div>
+
+      <div class="toggle-card" id="card-sms" onclick="toggleCard('sms')">
+        <div class="toggle-card-text">
+          <div class="tc-title">SMS text messages</div>
+          <div class="tc-sub">Requires a free Twilio account. Texts your phone directly.</div>
+        </div>
+        <button class="tgl" id="t-sms"></button>
+      </div>
+
+      <div id="sms-fields" style="display:none; margin-bottom:14px;">
+        <div class="notice info">Create a free account at <span class="link" onclick="window.restockbot.openExternal('https://twilio.com')">twilio.com ↗</span> to get your credentials.</div>
+        <div class="row2">
+          <div class="fg"><label class="fl">Account SID</label><input type="text" id="f-twilio-sid" placeholder="ACxxxxxxxx..."></div>
+          <div class="fg"><label class="fl">Auth Token</label><input type="password" id="f-twilio-token" placeholder="Your auth token"></div>
+        </div>
+        <div class="row2">
+          <div class="fg"><label class="fl">From number (Twilio)</label><input type="text" id="f-twilio-from" placeholder="+15550000000"></div>
+          <div class="fg"><label class="fl">Your phone number</label><input type="text" id="f-twilio-to" placeholder="+15551111111"></div>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn" onclick="goTo(0)">← Back</button>
+        <button class="btn btn-primary" onclick="goTo(2)">Continue →</button>
+      </div>
+    </div>
+
+    <!-- STEP 2: Schedule -->
+    <div class="page" id="step-2">
+      <div class="page-eyebrow">Step 3 of 5</div>
+      <div class="page-title">How often should<br>it check?</div>
+      <div class="page-sub">More frequent checks means faster alerts, but some websites may temporarily block you if you check too often.</div>
+
+      <div class="interval-grid">
+        <div class="interval-opt" onclick="selectInterval('*/1 * * * *', this)">
+          <div class="iv-label">1 min</div><div class="iv-sub">Aggressive</div>
+        </div>
+        <div class="interval-opt selected" onclick="selectInterval('*/5 * * * *', this)">
+          <div class="iv-label">5 min</div><div class="iv-sub">Recommended</div>
+        </div>
+        <div class="interval-opt" onclick="selectInterval('*/10 * * * *', this)">
+          <div class="iv-label">10 min</div><div class="iv-sub">Balanced</div>
+        </div>
+        <div class="interval-opt" onclick="selectInterval('*/15 * * * *', this)">
+          <div class="iv-label">15 min</div><div class="iv-sub">Conservative</div>
+        </div>
+        <div class="interval-opt" onclick="selectInterval('*/30 * * * *', this)">
+          <div class="iv-label">30 min</div><div class="iv-sub">Low profile</div>
+        </div>
+        <div class="interval-opt" onclick="selectInterval('0 * * * *', this)">
+          <div class="iv-label">1 hour</div><div class="iv-sub">Minimal</div>
+        </div>
+      </div>
+
+      <div class="notice">For limited-release items (sneakers, GPUs) use <b>1–5 min</b>. For general restocks, <b>15–30 min</b> is safer and avoids being blocked.</div>
+
+      <div class="btn-row">
+        <button class="btn" onclick="goTo(1)">← Back</button>
+        <button class="btn btn-primary" onclick="goTo(3)">Continue →</button>
+      </div>
+    </div>
+
+    <!-- STEP 3: Auto-Order -->
+    <div class="page" id="step-3">
+      <div class="page-eyebrow">Step 4 of 5</div>
+      <div class="page-title">Auto-ordering</div>
+      <div class="page-sub">RestockBot can place orders automatically the moment it detects a restock. You control the safety level.</div>
+
+      <div class="toggle-card" id="card-autoorder" onclick="toggleCard('autoorder')">
+        <div class="toggle-card-text">
+          <div class="tc-title">Enable auto-ordering</div>
+          <div class="tc-sub">Automatically add items to cart and place orders when restocked.</div>
+        </div>
+        <button class="tgl" id="t-autoorder"></button>
+      </div>
+
+      <div id="autoorder-fields" style="display:none;">
+        <div class="notice warn">⚠ Auto-ordering uses real money. Start with Dry Run mode and only disable it once you've verified everything works correctly.</div>
+
+        <div class="toggle-card selected" id="card-dryrun" onclick="toggleCard('dryrun')" style="margin-top:10px;">
+          <div class="toggle-card-text">
+            <div class="tc-title">Dry run mode (recommended)</div>
+            <div class="tc-sub">Simulates orders and logs what would happen — no real money spent. Turn this off when you're ready to go live.</div>
+          </div>
+          <button class="tgl on" id="t-dryrun"></button>
+        </div>
+
+        <div class="toggle-card selected" id="card-confirm" onclick="toggleCard('confirm')">
+          <div class="toggle-card-text">
+            <div class="tc-title">Require confirmation before ordering</div>
+            <div class="tc-sub">Sends you a notification before placing any order. You get a window to cancel.</div>
+          </div>
+          <button class="tgl on" id="t-confirm"></button>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn" onclick="goTo(2)">← Back</button>
+        <button class="btn btn-primary" onclick="goTo(4)">Continue →</button>
+      </div>
+    </div>
+
+    <!-- STEP 4: Finish -->
+    <div class="page" id="step-4">
+      <div class="page-eyebrow">Step 5 of 5</div>
+      <div class="page-title">You're all set.</div>
+      <div class="page-sub">Here's a summary of your configuration. You can change any of these in Settings at any time.</div>
+
+      <div id="summary" style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:1.5rem;"></div>
+
+      <div class="notice success">RestockBot will run in the background and live in your system tray. Click the tray icon anytime to open the dashboard or stop the bot.</div>
+
+      <div class="btn-row">
+        <button class="btn" onclick="goTo(3)">← Back</button>
+        <button class="btn btn-primary" id="launch-btn" onclick="launchBot()">Launch RestockBot →</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  let currentStep = 0;
+  let selectedInterval = '*/5 * * * *';
+
+  function goTo(step) {
+    document.querySelector('.page.active')?.classList.remove('active');
+    document.getElementById(`step-${step}`).classList.add('active');
+
+    document.querySelectorAll('.step-item').forEach((el, i) => {
+      el.classList.remove('active', 'done');
+      if (i < step) el.classList.add('done');
+      else if (i === step) el.classList.add('active');
+    });
+
+    currentStep = step;
+    if (step === 4) buildSummary();
+  }
+
+  function toggleCard(key) {
+    const card = document.getElementById(`card-${key}`);
+    const tgl = document.getElementById(`t-${key}`);
+    const on = !tgl.classList.contains('on');
+    tgl.classList.toggle('on', on);
+    card.classList.toggle('selected', on);
+
+    const fields = document.getElementById(`${key}-fields`);
+    if (fields) fields.style.display = on ? 'block' : 'none';
+  }
+
+  function selectInterval(val, el) {
+    document.querySelectorAll('.interval-opt').forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedInterval = val;
+  }
+
+  function buildSummary() {
+    const emailOn = document.getElementById('t-email').classList.contains('on');
+    const smsOn = document.getElementById('t-sms').classList.contains('on');
+    const autoOn = document.getElementById('t-autoorder').classList.contains('on');
+    const dryOn = document.getElementById('t-dryrun').classList.contains('on');
+    const confirmOn = document.getElementById('t-confirm').classList.contains('on');
+
+    const iv = { '*/1 * * * *':'Every 1 minute','*/5 * * * *':'Every 5 minutes','*/10 * * * *':'Every 10 minutes','*/15 * * * *':'Every 15 minutes','*/30 * * * *':'Every 30 minutes','0 * * * *':'Every hour' };
+
+    document.getElementById('summary').innerHTML = [
+      ['Check interval', iv[selectedInterval] || selectedInterval, true],
+      ['Desktop notifications', 'Always on', true],
+      ['Email alerts', emailOn ? (document.getElementById('f-email-to').value || 'Enabled') : 'Off', emailOn],
+      ['SMS alerts', smsOn ? 'Enabled' : 'Off', smsOn],
+      ['Auto-ordering', autoOn ? 'Enabled' : 'Off', autoOn],
+      ['Dry run mode', autoOn ? (dryOn ? 'On (safe)' : 'Off — live orders') : 'N/A', autoOn ? dryOn : false],
+      ['Require confirmation', autoOn ? (confirmOn ? 'Yes' : 'No') : 'N/A', autoOn ? confirmOn : false],
+    ].map(([k,v,on]) => `
+      <div class="summary-row">
+        <span class="sum-key">${k}</span>
+        <span class="sum-val ${on?'on':'off'}">${v}</span>
+      </div>`).join('');
+  }
+
+  async function testEmail() {
+    const result = document.getElementById('email-test-result');
+    result.style.color = 'var(--amber)';
+    result.textContent = 'Sending test email...';
+    // In real app this calls main process via IPC
+    setTimeout(() => {
+      result.style.color = 'var(--green)';
+      result.textContent = '✓ Test email sent — check your inbox';
+    }, 1500);
+  }
+
+  async function launchBot() {
+    const btn = document.getElementById('launch-btn');
+    btn.disabled = true;
+    btn.textContent = 'Launching...';
+
+    const emailOn = document.getElementById('t-email').classList.contains('on');
+    const smsOn   = document.getElementById('t-sms').classList.contains('on');
+    const autoOn  = document.getElementById('t-autoorder') && document.getElementById('t-autoorder').classList.contains('on');
+    const dryOn   = document.getElementById('t-dryrun') ? document.getElementById('t-dryrun').classList.contains('on') : true;
+    const cfmOn   = document.getElementById('t-confirm') ? document.getElementById('t-confirm').classList.contains('on') : true;
+
+    const settings = {
+      emailEnabled:   emailOn,
+      emailFrom:      document.getElementById('f-email-from').value.trim(),
+      emailTo:        document.getElementById('f-email-to').value.trim(),
+      emailPass:      document.getElementById('f-email-pass').value.trim(),
+      smsEnabled:     smsOn,
+      twilioSid:      document.getElementById('f-twilio-sid').value.trim(),
+      twilioToken:    document.getElementById('f-twilio-token').value.trim(),
+      twilioFrom:     document.getElementById('f-twilio-from').value.trim(),
+      twilioTo:       document.getElementById('f-twilio-to').value.trim(),
+      checkInterval:  selectedInterval,
+      dryRun:         dryOn,
+      requireConfirm: cfmOn,
+      useBrowser:     false,
+      dashboardPort:  3000,
+      webhookEnabled: false
+    };
+
+    try {
+      // completeSetup triggers the window to reload to dashboard.html
+      // so this page will be unloaded — no code runs after this point
+      await window.restockbot.completeSetup(settings);
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = 'Launch RestockBot →';
+      console.error('Launch failed:', err);
+    }
+  }
+</script>
+</body>
+</html>

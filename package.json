@@ -1,0 +1,87 @@
+{
+  "name": "restockbot",
+  "version": "1.0.0",
+  "description": "Restock monitor and auto-order desktop app",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "build:win": "electron-builder --win --x64",
+    "build:mac": "electron-builder --mac",
+    "build:linux": "electron-builder --linux",
+    "build:all": "electron-builder --win --mac --linux",
+    "publish:win": "electron-builder --win --x64 --publish always",
+    "publish:mac": "electron-builder --mac --publish always",
+    "publish:all": "electron-builder --win --mac --publish always"
+  },
+  "dependencies": {
+    "axios": "^1.7.2",
+    "cheerio": "^1.0.0",
+    "node-cron": "^3.0.3",
+    "nodemailer": "^6.9.13",
+    "electron-store": "^8.1.0",
+    "winston": "^3.13.0",
+    "puppeteer": "^22.12.1",
+    "electron-updater": "^6.3.4"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.restockbot.app",
+    "productName": "RestockBot",
+    "copyright": "Copyright \u00a9 2026",
+    "icon": "assets/icon",
+    "files": [
+      "src/**/*",
+      "renderer/**/*",
+      "assets/**/*",
+      "node_modules/**/*"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "icon": "assets/icon.icns",
+      "category": "public.app-category.utilities"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "icon": "assets/icon.png",
+      "category": "Utility"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "installerHeaderImage": "assets/installer-header.bmp"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "EthicalxTrader",
+      "repo": "ET-restockbot-releases"
+    }
+  }
+}
