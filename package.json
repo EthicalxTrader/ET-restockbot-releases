@@ -1,6 +1,6 @@
 {
   "name": "restockbot",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "Restock monitor and auto-order desktop app",
   "main": "src/main.js",
   "scripts": {
@@ -31,7 +31,7 @@
   "build": {
     "appId": "com.restockbot.app",
     "productName": "RestockBot",
-    "copyright": "Copyright \u00a9 2026",
+    "copyright": "Copyright 2026",
     "icon": "assets/icon",
     "files": [
       "src/**/*",
@@ -43,9 +43,7 @@
       "target": [
         {
           "target": "nsis",
-          "arch": [
-            "x64"
-          ]
+          "arch": ["x64"]
         }
       ],
       "icon": "assets/icon.ico"
@@ -54,20 +52,14 @@
       "target": [
         {
           "target": "dmg",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
+          "arch": ["x64", "arm64"]
         }
       ],
       "icon": "assets/icon.icns",
       "category": "public.app-category.utilities"
     },
     "linux": {
-      "target": [
-        "AppImage",
-        "deb"
-      ],
+      "target": ["AppImage", "deb"],
       "icon": "assets/icon.png",
       "category": "Utility"
     },
@@ -75,8 +67,7 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
-      "installerHeaderImage": "assets/installer-header.bmp"
+      "createStartMenuShortcut": true
     },
     "publish": {
       "provider": "github",

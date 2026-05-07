@@ -20,9 +20,9 @@ contextBridge.exposeInMainWorld('restockbot', {
   // Utils
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
 
-  // Window controls
-  minimize: () => ipcRenderer.send('window-minimize'),
-  maximize: () => ipcRenderer.send('window-maximize'),
+  // Window controls (native frame handles these now)
+  minimize: () => {},
+  maximize: () => {},
   close: () => ipcRenderer.send('window-close'),
   quit: () => ipcRenderer.send('window-quit'),
 

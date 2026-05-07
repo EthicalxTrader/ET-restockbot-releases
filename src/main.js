@@ -54,8 +54,8 @@ function createWindow() {
     minWidth: setupDone ? 900 : 560,
     minHeight: setupDone ? 600 : 680,
     resizable: true,
-    frame: false,
-    titleBarStyle: 'hidden',
+    frame: true,
+    titleBarStyle: 'default',
     backgroundColor: '#0f1117',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -153,10 +153,14 @@ async function runChecks() {
         priceUpdate.priceHistory = history.slice(-50); // keep last 50 data points
       }
 
+      const statusHistory = item.statusHistory || [];
+      statusHistory.push(result.inStock ? 'in' : 'out');
+
       updateItemInStore(item.id, {
         lastStatus: result.inStock ? 'in' : 'out',
         lastChecked: now,
         timesChecked: (item.timesChecked || 0) + 1,
+        statusHistory: statusHistory.slice(-20),
         ...priceUpdate
       });
 
@@ -191,7 +195,13 @@ async function runChecks() {
           : `${item.name} is back in stock!`;
 
         log('info', `★ RESTOCK DETECTED: ${alertMsg}`);
-        updateItemInStore(item.id, { timesRestocked: (item.timesRestocked || 0) + 1 });
+        const restockEntry = { ts: now, price: result.price || null };
+        const restockHistory = item.restockHistory || [];
+        restockHistory.push(restockEntry);
+        updateItemInStore(item.id, {
+          timesRestocked: (item.timesRestocked || 0) + 1,
+          restockHistory: restockHistory.slice(-100)
+        });
 
         // Desktop notification
         showNotification(alertMsg, item.url);
@@ -406,7 +416,9 @@ function showNotification(title, body) {
 
 async function sendNotifications(item, price) {
   const s = store.get('settings');
-  if (s.emailEnabled && s.emailFrom && s.emailPass) {
+
+  // ── Email ──
+  if (s.emailEnabled && item.notify?.email !== false && s.emailFrom && s.emailPass) {
     try {
       const nodemailer = require('nodemailer');
       const t = nodemailer.createTransport({ service: 'gmail', auth: { user: s.emailFrom, pass: s.emailPass } });
@@ -420,6 +432,37 @@ async function sendNotifications(item, price) {
       });
       log('info', `Email alert sent for: ${item.name}`);
     } catch (err) { log('error', `Email failed: ${err.message}`); }
+  }
+
+  // ── Discord webhook ──
+  const discordUrl = item.discordWebhook || (s.discordEnabled ? s.discordWebhook : null);
+  if (discordUrl && item.notify?.discord !== false) {
+    try {
+      const axios = require('axios');
+      const priceStr = price != null ? ` at **$${price.toFixed(2)}**` : '';
+      const targetStr = item.priceMonitor?.targetPrice ? ` (target: $${parseFloat(item.priceMonitor.targetPrice).toFixed(2)})` : '';
+      const embed = {
+        embeds: [{
+          title: '🟢 RESTOCK DETECTED',
+          description: `**${item.name}** is back in stock${priceStr}${targetStr}`,
+          color: 0x00e5a0,
+          fields: [
+            { name: 'Retailer', value: item.url.split('/')[2]?.replace('www.','') || 'Unknown', inline: true },
+            ...(price != null ? [{ name: 'Price', value: `$${price.toFixed(2)}`, inline: true }] : []),
+            ...(item.priceMonitor?.targetPrice ? [{ name: 'Your Target', value: `$${parseFloat(item.priceMonitor.targetPrice).toFixed(2)}`, inline: true }] : []),
+          ],
+          url: item.url,
+          footer: { text: 'RestockBot' },
+          timestamp: new Date().toISOString()
+        }],
+        components: [{
+          type: 1,
+          components: [{ type: 2, style: 5, label: 'View Product →', url: item.url }]
+        }]
+      };
+      await axios.post(discordUrl, embed, { timeout: 8000 });
+      log('info', `Discord alert sent for: ${item.name}`);
+    } catch (err) { log('error', `Discord webhook failed: ${err.message}`); }
   }
 }
 
