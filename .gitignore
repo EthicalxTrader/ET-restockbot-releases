@@ -1,4 +1,8 @@
-node_modules/
-dist/
-.env.publish
-*.log
+﻿# Electron build artifacts — large binaries go to GitHub Releases, not git
+dist/*.exe
+dist/*.blockmap
+dist/win-unpacked/
+dist/linux-unpacked/
+dist/mac/
+dist/builder-debug.yml
+dist/builder-effective-config.yaml
