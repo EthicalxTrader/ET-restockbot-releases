@@ -1,8 +1,8 @@
-version: 1.2.1
+version: 1.2.2
 files:
-  - url: RestockBot-Setup-1.2.1.exe
-    sha512: nXB24jWNq8Owo1yCevCSddCFlu+q57o8O8YDJPf4DNgMJozgL43X35zlR1a0ALZN+YzwSKsfWzkZpaPHrkdl6A==
-    size: 83867954
-path: RestockBot-Setup-1.2.1.exe
-sha512: nXB24jWNq8Owo1yCevCSddCFlu+q57o8O8YDJPf4DNgMJozgL43X35zlR1a0ALZN+YzwSKsfWzkZpaPHrkdl6A==
-releaseDate: '2026-05-14T22:38:26.713Z'
+  - url: RestockBot-Setup-1.2.2.exe
+    sha512: 8gAU6xztY8x+HBrRjkac78y2KJbz8yrRISrh3oj8Oy4ZJU1meHNinWxESyOtT+ZNs31siNQgsFexaYtCi5loKg==
+    size: 83868012
+path: RestockBot-Setup-1.2.2.exe
+sha512: 8gAU6xztY8x+HBrRjkac78y2KJbz8yrRISrh3oj8Oy4ZJU1meHNinWxESyOtT+ZNs31siNQgsFexaYtCi5loKg==
+releaseDate: '2026-05-14T22:59:11.208Z'
